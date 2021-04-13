@@ -32,14 +32,21 @@ const (
 	defaultSidecarPort = "80"
 )
 
+// Supported capacity providers for Fargate services
+const (
+	capacityProviderFargateSpot = "FARGATE_SPOT"
+	capacityProviderFargate     = "FARGATE"
+)
+
 // Validation errors when rendering manifest into template.
 var (
 	errNoFSID                      = errors.New(`volume field efs/id cannot be empty`)
 	errAcessPointWithRootDirectory = errors.New(`root directory must be empty or "/" when access point ID is specified`)
 	errAccessPointWithoutIAM       = errors.New(`"iam" must be true when access point ID is specified`)
 
-	errNoContainerPath = errors.New(`"path" cannot be empty`)
-	errNoSourceVolume  = errors.New(`"source_volume" cannot be empty`)
+	errNoContainerPath   = errors.New(`"path" cannot be empty`)
+	errNoSourceVolume    = errors.New(`"source_volume" cannot be empty`)
+	errInvalidSpotConfig = errors.New(`invalid spot configuration`)
 )
 
 // convertSidecar converts the manifest sidecar configuration into a format parsable by the templates pkg.
@@ -89,20 +96,62 @@ func parsePortMapping(s *string) (port *string, protocol *string, err error) {
 	}
 }
 
+// convertCapacityProviders transforms the manifest fields into a format
+// parsable by the templates pkg.
+// TODO? add validation with range and base/enabled?
+func convertCapacityProviders(a *manifest.Autoscaling) (*template.CapacityProviders, error) {
+	if a.IsEmpty() {
+		return nil, nil
+	}
+
+	spotConfig := a.Spot
+	if !aws.BoolValue(spotConfig.Enabled) && spotConfig.Base == nil {
+		return nil, nil
+	}
+
+	if spotConfig.Enabled != nil && spotConfig.Base != nil {
+		return nil, errInvalidSpotConfig
+	}
+
+	if spotConfig.Enabled != nil && a.Range == nil {
+		return nil, errInvalidSpotConfig
+	}
+
+	var cps []*template.CapacityProviderStrategy
+
+	// if Base is not nil, then that's what the desired count should be on the service
+	count := spotConfig.Base
+
+	// if Enabled is true, then weight on Spot CPS should be 1
+	spotCapacity := &template.CapacityProviderStrategy{
+		Weight:           aws.Int(1),
+		CapacityProvider: capacityProviderFargateSpot,
+	}
+	cps = append(cps, spotCapacity)
+
+	return &template.CapacityProviders{
+		DesiredCountOnSpot:         count,
+		CapacityProviderStrategies: cps,
+	}, nil
+}
+
 // convertAutoscaling converts the service's Auto Scaling configuration into a format parsable
 // by the templates pkg.
 func convertAutoscaling(a *manifest.Autoscaling) (*template.AutoscalingOpts, error) {
 	if a.IsEmpty() {
 		return nil, nil
 	}
-	min, max, err := a.Range.Parse()
-	if err != nil {
-		return nil, err
+	autoscalingOpts := template.AutoscalingOpts{}
+
+	if a.Spot == nil {
+		min, max, err := a.Range.Parse()
+		if err != nil {
+			return nil, err
+		}
+		autoscalingOpts.MinCapacity = &min
+		autoscalingOpts.MaxCapacity = &max
 	}
-	autoscalingOpts := template.AutoscalingOpts{
-		MinCapacity: &min,
-		MaxCapacity: &max,
-	}
+
 	if a.CPU != nil {
 		autoscalingOpts.CPU = aws.Float64(float64(*a.CPU))
 	}

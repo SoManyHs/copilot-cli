@@ -4,6 +4,8 @@ Cluster:
 TaskDefinition: !Ref TaskDefinition
 {{- if .Autoscaling }}
 DesiredCount: !GetAtt DynamicDesiredCountAction.DesiredCount
+{{- else if .CapacityProviders.DesiredCountOnSpot }}
+DesiredCount: {{ .CapacityProviders.DesiredCountOnSpot }}
 {{- else }}
 DesiredCount: !Ref TaskCount
 {{- end}}
@@ -21,7 +23,17 @@ PropagateTags: SERVICE
 PlatformVersion: 1.4.0
 EnableExecuteCommand: true
 {{- end }}
+{{- if not .CapacityProviders.CapacityProviderStrategies }}
 LaunchType: FARGATE
+{{- end }}
+{{- if .CapacityProviders.CapacityProviderStrategies }}
+CapacityProviderStrategy:
+  {{- range $cps := .CapacityProviders.CapacityProviderStrategies }}
+  - Base: {{$cps.Base}}
+    Weight: {{$cps.Weight}}
+    CapacityProvider: {{$cps.CapacityProvider}}
+  {{- end}}
+{{- end }}
 NetworkConfiguration:
   AwsvpcConfiguration:
     AssignPublicIp: {{.Network.AssignPublicIP}}
