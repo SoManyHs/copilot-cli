@@ -159,6 +159,21 @@ type HTTPHealthCheckOpts struct {
 	Timeout            *int64
 }
 
+// CapacityProviders holds a list of the CapacityProviderStrategy items as well
+// as the DesiredCount for the service if spot is specified as an integer.
+type CapacityProviders struct {
+	DesiredCountOnSpot         *int
+	CapacityProviderStrategies []*CapacityProviderStrategy
+}
+
+// CapacityProviderStrategy holds the configuration needed for a
+// CapacityProviderStrategyItem on a Service
+type CapacityProviderStrategy struct {
+	Base             *int
+	Weight           *int
+	CapacityProvider string // TODO use enum?
+}
+
 // AutoscalingOpts holds configuration that's needed for Auto Scaling.
 type AutoscalingOpts struct {
 	MinCapacity  *int
@@ -195,18 +210,19 @@ func defaultNetworkOpts() *NetworkOpts {
 // WorkloadOpts holds optional data that can be provided to enable features in a workload stack template.
 type WorkloadOpts struct {
 	// Additional options that are common between **all** workload templates.
-	Variables      map[string]string
-	Secrets        map[string]string
-	NestedStack    *WorkloadNestedStackOpts // Outputs from nested stacks such as the addons stack.
-	Sidecars       []*SidecarOpts
-	LogConfig      *LogConfigOpts
-	Autoscaling    *AutoscalingOpts
-	Storage        *StorageOpts
-	Network        *NetworkOpts
-	ExecuteCommand *ExecuteCommandOpts
-	EntryPoint     []string
-	Command        []string
-	DomainAlias    string
+	Variables         map[string]string
+	Secrets           map[string]string
+	NestedStack       *WorkloadNestedStackOpts // Outputs from nested stacks such as the addons stack.
+	Sidecars          []*SidecarOpts
+	LogConfig         *LogConfigOpts
+	Autoscaling       *AutoscalingOpts
+	CapacityProviders *CapacityProviders
+	Storage           *StorageOpts
+	Network           *NetworkOpts
+	ExecuteCommand    *ExecuteCommandOpts
+	EntryPoint        []string
+	Command           []string
+	DomainAlias       string
 
 	// Additional options for service templates.
 	WorkloadType        string

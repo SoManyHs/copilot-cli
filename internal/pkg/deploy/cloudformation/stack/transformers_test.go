@@ -98,6 +98,90 @@ func Test_convertSidecar(t *testing.T) {
 	}
 }
 
+func Test_convertCapacityProviders(t *testing.T) {
+	mockRange := manifest.Range("1-10")
+	testCases := map[string]struct {
+		input     *manifest.Autoscaling
+		wanted    *template.CapacityProviders
+		wantedErr error
+	}{
+		"with spot as desiredCount": {
+			input: &manifest.Autoscaling{
+				Spot: &manifest.Spot{
+					Base: aws.Int(3),
+				},
+			},
+
+			wanted: &template.CapacityProviders{
+				DesiredCountOnSpot: aws.Int(3),
+				CapacityProviderStrategies: []*template.CapacityProviderStrategy{
+					{
+						Weight:           aws.Int(1),
+						CapacityProvider: capacityProviderFargateSpot,
+					},
+				},
+			},
+		},
+		"with spot enabled with range": {
+			input: &manifest.Autoscaling{
+				Range: &mockRange,
+				Spot: &manifest.Spot{
+					Enabled: aws.Bool(true),
+				},
+			},
+
+			wanted: &template.CapacityProviders{
+				CapacityProviderStrategies: []*template.CapacityProviderStrategy{
+					{
+						Weight:           aws.Int(1),
+						CapacityProvider: capacityProviderFargateSpot,
+					},
+				},
+			},
+		},
+		"with spot not enabled with range": {
+			input: &manifest.Autoscaling{
+				Range: &mockRange,
+				Spot: &manifest.Spot{
+					Enabled: aws.Bool(false),
+				},
+			},
+
+			wanted: nil,
+		},
+		"errors if spot enabled without range": {
+			input: &manifest.Autoscaling{
+				Spot: &manifest.Spot{
+					Enabled: aws.Bool(true),
+				},
+			},
+			wantedErr: errInvalidSpotConfig,
+		},
+		"errors if spot contains enabled and base": {
+			input: &manifest.Autoscaling{
+				Spot: &manifest.Spot{
+					Enabled: aws.Bool(true),
+					Base:    aws.Int(1),
+				},
+			},
+			wantedErr: errInvalidSpotConfig,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, err := convertCapacityProviders(tc.input)
+
+			if tc.wantedErr != nil {
+				require.EqualError(t, err, tc.wantedErr.Error())
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, got, tc.wanted)
+			}
+		})
+	}
+}
+
 func Test_convertAutoscaling(t *testing.T) {
 	const (
 		mockRange    = "1-100"
