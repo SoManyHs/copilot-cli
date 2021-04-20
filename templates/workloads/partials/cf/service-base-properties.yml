@@ -29,9 +29,8 @@ LaunchType: FARGATE
 {{- if .CapacityProviders }}
 CapacityProviderStrategy:
   {{- range $cps := .CapacityProviders}}
-  - Base: {{$cps.Base}}
+  - CapacityProvider: {{$cps.CapacityProvider}}
     Weight: {{$cps.Weight}}
-    CapacityProvider: {{$cps.CapacityProvider}}
   {{- end}}
 {{- end }}
 NetworkConfiguration:

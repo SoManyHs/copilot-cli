@@ -133,7 +133,7 @@ environments:
 						"staging1": {
 							TaskConfig: TaskConfig{
 								Count: Count{
-									Autoscaling: Autoscaling{
+									AutoscalingOrSpot: AutoscalingOrSpot{
 										Spot: aws.Int(5),
 									},
 								},
@@ -142,9 +142,11 @@ environments:
 						"prod": {
 							TaskConfig: TaskConfig{
 								Count: Count{
-									Autoscaling: Autoscaling{
-										Range: &mockRange,
-										CPU:   aws.Int(70),
+									AutoscalingOrSpot: AutoscalingOrSpot{
+										Autoscaling: &Autoscaling{
+											Range: &mockRange,
+											CPU:   aws.Int(70),
+										},
 									},
 								},
 							},
@@ -264,12 +266,14 @@ func TestCount_UnmarshalYAML(t *testing.T) {
   response_time: 500ms
 `),
 			wantedStruct: Count{
-				Autoscaling: Autoscaling{
-					Range:        &mockRange,
-					CPU:          aws.Int(70),
-					Memory:       aws.Int(80),
-					Requests:     aws.Int(1000),
-					ResponseTime: &mockResponseTime,
+				AutoscalingOrSpot: AutoscalingOrSpot{
+					Autoscaling: &Autoscaling{
+						Range:        &mockRange,
+						CPU:          aws.Int(70),
+						Memory:       aws.Int(80),
+						Requests:     aws.Int(1000),
+						ResponseTime: &mockResponseTime,
+					},
 				},
 			},
 		},
@@ -278,7 +282,7 @@ func TestCount_UnmarshalYAML(t *testing.T) {
   spot: 42
 `),
 			wantedStruct: Count{
-				Autoscaling: Autoscaling{
+				AutoscalingOrSpot: AutoscalingOrSpot{
 					Spot: aws.Int(42),
 				},
 			},
@@ -305,13 +309,16 @@ func TestCount_UnmarshalYAML(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				// check memberwise dereferenced pointer equality
-				require.Equal(t, tc.wantedStruct.Value, b.Count.Value)
-				require.Equal(t, tc.wantedStruct.Autoscaling.Range, b.Count.Autoscaling.Range)
-				require.Equal(t, tc.wantedStruct.Autoscaling.CPU, b.Count.Autoscaling.CPU)
-				require.Equal(t, tc.wantedStruct.Autoscaling.Memory, b.Count.Autoscaling.Memory)
-				require.Equal(t, tc.wantedStruct.Autoscaling.Requests, b.Count.Autoscaling.Requests)
-				require.Equal(t, tc.wantedStruct.Autoscaling.ResponseTime, b.Count.Autoscaling.ResponseTime)
-				require.Equal(t, tc.wantedStruct.Autoscaling.Spot, b.Count.Autoscaling.Spot)
+				wanted := tc.wantedStruct
+				require.Equal(t, wanted.Value, b.Count.Value)
+				a := wanted.AutoscalingOrSpot
+				c := b.Count.AutoscalingOrSpot
+				require.Equal(t, a.Autoscaling.Range, c.Autoscaling.Range)
+				require.Equal(t, a.Autoscaling.CPU, c.Autoscaling.CPU)
+				require.Equal(t, a.Autoscaling.Memory, c.Autoscaling.Memory)
+				require.Equal(t, a.Autoscaling.Requests, c.Autoscaling.Requests)
+				require.Equal(t, a.Autoscaling.ResponseTime, c.Autoscaling.ResponseTime)
+				require.Equal(t, a.Spot, c.Spot)
 			}
 		})
 	}

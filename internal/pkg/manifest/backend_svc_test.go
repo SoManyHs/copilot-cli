@@ -265,8 +265,10 @@ func TestBackendSvc_ApplyEnv(t *testing.T) {
 			"test": {
 				TaskConfig: TaskConfig{
 					Count: Count{
-						Autoscaling: Autoscaling{
-							CPU: aws.Int(70),
+						AutoscalingOrSpot: AutoscalingOrSpot{
+							Autoscaling: &Autoscaling{
+								CPU: aws.Int(70),
+							},
 						},
 					},
 					CPU: aws.Int(512),
@@ -333,8 +335,10 @@ func TestBackendSvc_ApplyEnv(t *testing.T) {
 						Memory: aws.Int(256),
 						Count: Count{
 							Value: aws.Int(1),
-							Autoscaling: Autoscaling{
-								CPU: aws.Int(70),
+							AutoscalingOrSpot: AutoscalingOrSpot{
+								Autoscaling: &Autoscaling{
+									CPU: aws.Int(70),
+								},
 							},
 						},
 						Variables: map[string]string{
