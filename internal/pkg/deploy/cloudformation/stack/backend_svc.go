@@ -93,6 +93,8 @@ func (s *BackendService) Template() (string, error) {
 		return "", fmt.Errorf("convert the Capacity Provider configuration for service %s: %w", s.name, err)
 	}
 
+	desiredCountOnSpot := s.manifest.Count.Autoscaling.Spot
+
 	storage, err := convertStorageOpts(s.manifest.Name, s.manifest.Storage)
 	if err != nil {
 		return "", fmt.Errorf("convert storage options for service %s: %w", s.name, err)
@@ -112,6 +114,7 @@ func (s *BackendService) Template() (string, error) {
 		Sidecars:            sidecars,
 		Autoscaling:         autoscaling,
 		CapacityProviders:   capacityProviders,
+		DesiredCountOnSpot:  desiredCountOnSpot,
 		ExecuteCommand:      convertExecuteCommand(&s.manifest.ExecuteCommand),
 		WorkloadType:        manifest.BackendServiceType,
 		HealthCheck:         s.manifest.BackendServiceConfig.ImageConfig.HealthCheckOpts(),

@@ -118,6 +118,8 @@ func (s *LoadBalancedWebService) Template() (string, error) {
 		return "", fmt.Errorf("convert the Capacity Provider configuration for service %s: %w", s.name, err)
 	}
 
+	desiredCountOnSpot := s.manifest.Count.Autoscaling.Spot
+
 	storage, err := convertStorageOpts(s.manifest.Name, s.manifest.Storage)
 	if err != nil {
 		return "", fmt.Errorf("convert storage options for service %s: %w", s.name, err)
@@ -139,6 +141,7 @@ func (s *LoadBalancedWebService) Template() (string, error) {
 		LogConfig:           convertLogging(s.manifest.Logging),
 		Autoscaling:         autoscaling,
 		CapacityProviders:   capacityProviders,
+		DesiredCountOnSpot:  desiredCountOnSpot,
 		ExecuteCommand:      convertExecuteCommand(&s.manifest.ExecuteCommand),
 		WorkloadType:        manifest.LoadBalancedWebServiceType,
 		HTTPHealthCheck:     convertHTTPHealthCheck(&s.manifest.HealthCheck),

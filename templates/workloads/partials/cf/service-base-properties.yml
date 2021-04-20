@@ -2,10 +2,10 @@ Cluster:
   Fn::ImportValue:
     !Sub '${AppName}-${EnvName}-ClusterId'
 TaskDefinition: !Ref TaskDefinition
-{{- if .Autoscaling }}
+{{- if .DesiredCountOnSpot}}
+DesiredCount: !Ref TaskCount
+{{- else if .Autoscaling}}
 DesiredCount: !GetAtt DynamicDesiredCountAction.DesiredCount
-{{- else if .CapacityProviders.DesiredCountOnSpot }}
-DesiredCount: {{ .CapacityProviders.DesiredCountOnSpot }}
 {{- else }}
 DesiredCount: !Ref TaskCount
 {{- end}}
@@ -23,12 +23,12 @@ PropagateTags: SERVICE
 PlatformVersion: 1.4.0
 EnableExecuteCommand: true
 {{- end }}
-{{- if not .CapacityProviders.CapacityProviderStrategies }}
+{{- if not .CapacityProviders }}
 LaunchType: FARGATE
 {{- end }}
-{{- if .CapacityProviders.CapacityProviderStrategies }}
+{{- if .CapacityProviders }}
 CapacityProviderStrategy:
-  {{- range $cps := .CapacityProviders.CapacityProviderStrategies }}
+  {{- range $cps := .CapacityProviders}}
   - Base: {{$cps.Base}}
     Weight: {{$cps.Weight}}
     CapacityProvider: {{$cps.CapacityProvider}}

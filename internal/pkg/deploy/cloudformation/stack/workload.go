@@ -106,7 +106,7 @@ func (w *wkld) Parameters() ([]*cloudformation.Parameter, error) {
 			}
 			desiredCount = aws.Int(min)
 		} else {
-			desiredCount = w.tc.Count.Autoscaling.Spot.Base
+			desiredCount = w.tc.Count.Autoscaling.Spot
 		}
 	}
 
